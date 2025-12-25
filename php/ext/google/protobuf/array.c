@@ -113,7 +113,13 @@ static zend_object* RepeatedField_clone_obj(zend_object* object) {
 }
 
 static HashTable* RepeatedField_GetProperties(zend_object* object) {
-  return NULL;  // We do not have a properties table.
+  // Ensure the standard properties table is initialized to prevent potential
+  // segmentation faults in edge cases. RepeatedField implements IteratorAggregate
+  // so foreach() should use getIterator(), but we provide this as a fallback.
+  if (!object->properties) {
+    rebuild_object_properties(object);
+  }
+  return object->properties;
 }
 
 static zval* RepeatedField_GetPropertyPtrPtr(zend_object* object,
