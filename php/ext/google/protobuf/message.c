@@ -412,7 +412,7 @@ static HashTable* Message_get_properties(zend_object* object) {
   // Ensure the standard properties table is initialized (even if empty)
   // to prevent segmentation faults when users attempt foreach() iteration.
   if (!object->properties) {
-    rebuild_object_properties(object);
+    zend_std_get_properties(object);
   }
   return object->properties;
 }

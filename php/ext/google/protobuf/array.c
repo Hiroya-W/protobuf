@@ -117,7 +117,7 @@ static HashTable* RepeatedField_GetProperties(zend_object* object) {
   // segmentation faults in edge cases. RepeatedField implements IteratorAggregate
   // so foreach() should use getIterator(), but we provide this as a fallback.
   if (!object->properties) {
-    rebuild_object_properties(object);
+    zend_std_get_properties(object);
   }
   return object->properties;
 }
