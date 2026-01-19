@@ -409,10 +409,14 @@ static zend_object* Message_clone_obj(zend_object* object) {
  * See: https://github.com/protocolbuffers/protobuf/issues/22173
  */
 static HashTable* Message_get_properties(zend_object* object) {
-  // Ensure the standard properties table is initialized (even if empty)
-  // to prevent segmentation faults when users attempt foreach() iteration.
+  // Ensure the properties table exists and is empty to prevent segfaults
+  // during foreach() iteration while also ensuring no properties are exposed.
   if (!object->properties) {
-    zend_std_get_properties(object);
+    ALLOC_HASHTABLE(object->properties);
+    zend_hash_init(object->properties, 0, NULL, ZVAL_PTR_DTOR, 0);
+  } else {
+    // If properties table exists, ensure it's empty
+    zend_hash_clean(object->properties);
   }
   return object->properties;
 }
