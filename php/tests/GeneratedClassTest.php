@@ -2063,4 +2063,35 @@ class GeneratedClassTest extends TestBase
         // test forwardslash on new line
         $this->assertContains("* /\n", $docComment);
     }
+
+    #########################################################
+    # Test foreach iteration (issue #22173)
+    #########################################################
+
+    public function testForeachOnMessageDoesNotSegfault()
+    {
+        // Regression test for issue #22173
+        // https://github.com/protocolbuffers/protobuf/issues/22173
+        //
+        // Iterating over a protobuf Message with foreach should work
+        // the same as the pure PHP implementation, allowing access to
+        // all message fields.
+        $m = new TestMessage();
+        $m->setOptionalInt32(42);
+        $m->setOptionalString("test");
+
+        $fields = [];
+        foreach ($m as $key => $value) {
+            $fields[$key] = $value;
+        }
+
+        // Should be able to iterate over message fields
+        $this->assertArrayHasKey('optional_int32', $fields);
+        $this->assertArrayHasKey('optional_string', $fields);
+        $this->assertSame(42, $fields['optional_int32']);
+        $this->assertSame("test", $fields['optional_string']);
+
+        // Should include all fields (even unset ones)
+        $this->assertGreaterThan(2, count($fields));
+    }
 }

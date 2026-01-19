@@ -400,24 +400,47 @@ static zend_object* Message_clone_obj(zend_object* object) {
  * Message_get_properties()
  *
  * Object handler for the get_properties event in PHP. This returns a HashTable
- * of our internal properties.
+ * of all message fields, allowing foreach() iteration over the message.
  *
- * Protobuf messages are not meant to be iterable, but we must return an empty
- * HashTable instead of NULL to prevent segmentation faults when users attempt
- * to iterate over a message with foreach().
+ * This matches the behavior of the pure PHP implementation, where message
+ * fields are accessible as dynamic properties.
  *
  * See: https://github.com/protocolbuffers/protobuf/issues/22173
  */
 static HashTable* Message_get_properties(zend_object* object) {
-  // Ensure the properties table exists and is empty to prevent segfaults
-  // during foreach() iteration while also ensuring no properties are exposed.
+  Message* intern = (Message*)object;
+
+  // Initialize properties table if it doesn't exist
   if (!object->properties) {
     ALLOC_HASHTABLE(object->properties);
     zend_hash_init(object->properties, 0, NULL, ZVAL_PTR_DTOR, 0);
   } else {
-    // If properties table exists, ensure it's empty
+    // Clear existing properties to rebuild
     zend_hash_clean(object->properties);
   }
+
+  // Return empty table if descriptor is not available
+  if (!intern->desc || !intern->desc->msgdef) {
+    return object->properties;
+  }
+
+  // Iterate over all fields and add them to the properties table
+  const upb_MessageDef* msgdef = intern->desc->msgdef;
+  int field_count = upb_MessageDef_FieldCount(msgdef);
+
+  for (int i = 0; i < field_count; i++) {
+    const upb_FieldDef* field = upb_MessageDef_Field(msgdef, i);
+    const char* field_name = upb_FieldDef_Name(field);
+    zval property_value;
+
+    // Get the field value
+    Message_get(intern, field, &property_value);
+
+    // Add to properties table with field name as key
+    zend_hash_str_add_new(object->properties, field_name, strlen(field_name),
+                          &property_value);
+  }
+
   return object->properties;
 }
 
