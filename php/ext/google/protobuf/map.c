@@ -134,7 +134,16 @@ static zval* Map_GetPropertyPtrPtr(zend_object* object, zend_string* member,
 }
 
 static HashTable* Map_GetProperties(zend_object* object) {
-  return NULL;  // We do not have a properties table.
+  // Ensure the properties table exists and is empty to prevent segfaults.
+  // MapField implements IteratorAggregate so foreach() should use
+  // getIterator(), but we provide this as a safety fallback.
+  if (!object->properties) {
+    ALLOC_HASHTABLE(object->properties);
+    zend_hash_init(object->properties, 0, NULL, ZVAL_PTR_DTOR, 0);
+  } else {
+    zend_hash_clean(object->properties);
+  }
+  return object->properties;
 }
 
 // C Functions from map.h //////////////////////////////////////////////////////
